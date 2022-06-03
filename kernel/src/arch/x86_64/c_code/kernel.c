@@ -17,6 +17,7 @@ void kernel_main(uint8_t *multiboot_info_header_p) {
 
 void kernel_virtualized_main() {
 	uint8_t *data;
+	pt1_entry_t *user_page_table;
 
 	printk("In Virtual Memory!\n");
 	kmem_init();
@@ -26,7 +27,8 @@ void kernel_virtualized_main() {
 	syscall_init();
 
 	//PROC_create_kthread(load_elf("/boot/user/program_1.elf"), data);
-	start_user_process("/boot/user/program_1.elf");
+	user_page_table = new_user_page_table();
+	PROC_create_thread(load_user_elf("/boot/user/program_1.elf", user_page_table), user_page_table, 0x00);
 	PROC_run();
 	//PROC_create_kthread(thread_1, data);
 	//PROC_create_kthread(thread_2, data);

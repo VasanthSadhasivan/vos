@@ -10,6 +10,7 @@
 
 #include<stdint.h>
 
-void start_user_process(uint8_t *filename);
+pt1_entry_t *new_user_page_table();
+kthread_function_t *load_user_elf(uint8_t *filename, pt1_entry_t *user_page_table);
 
 #endif
