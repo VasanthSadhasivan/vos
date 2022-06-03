@@ -179,6 +179,7 @@ int8_t *read_keyboard_nonblocking() {
 
 void handle_keyboard() {
 	//printk("Inside keyboard Interrupt");
+
 	((uint8_t *) PROC_keyboard_queue.buffer)[PROC_keyboard_queue.write_i++] = (uint8_t)  read_keyboard_nonblocking()[0];
 	PROC_unblock_head(&PROC_keyboard_queue);
 }

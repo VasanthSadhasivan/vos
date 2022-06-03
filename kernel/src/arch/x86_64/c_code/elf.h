@@ -7,6 +7,7 @@
 #include"heap.h"
 #include<stdint.h>
 
-kthread_function_t *load_elf(uint8_t *file_location, uint8_t *address);
+kthread_function_t *load_elf(uint8_t *file_location);
+kthread_function_t *load_elf_separate_pt(uint8_t *file_location, pt1_entry_t *page_table_base);
 
 #endif

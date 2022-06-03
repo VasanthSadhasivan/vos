@@ -146,6 +146,10 @@ gdt64:
 	dq 0 ; zero entry
 .code: equ $ - gdt64
 	dq (1<<43) | (1<<44) | (1<<47) | (1<<53) ; code segment
+.code_user: equ $ - gdt64
+	dq (1<<43) | (1<<44) | (1<<45) | (1<<46) | (1<<47) | (1<<53); code segment for user
+.data_user: equ $ - gdt64
+	dq (1<<41) | (1<<44) | (1<<45) | (1<<46) | (1<<47); data segment for user
 .tss: equ $ - gdt64
 	dq 0x0000000000000000
 	dq 0x0000000000000000
@@ -154,8 +158,7 @@ gdt64:
 	dq gdt64
 tss:
 	dd 0
-	dd 0
-	dd 0
+	dq 0x4ffffffffff
 	dd 0
 	dd 0
 	dd 0

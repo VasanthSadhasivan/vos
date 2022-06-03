@@ -5,6 +5,7 @@
 #include"string.h"
 #include"block.h"
 #include"heap.h"
+#include"paging.h"
 #include"my_stdlib.h"
 
 typedef struct __attribute__((packed)){
@@ -61,6 +62,7 @@ uint16_t get_available_fd();
 uint16_t open(uint8_t *filename);
 uint16_t close(uint16_t fd);
 uint64_t read(uint8_t fd, uint64_t size, uint8_t *buffer);
+uint64_t read_separate_pt(uint8_t fd, uint64_t size, uint8_t *buffer, pt1_entry_t *page_table_base);
 uint64_t lseek(uint8_t fd, uint64_t size, uint8_t whence);
 
 #define SEEK_SET 0

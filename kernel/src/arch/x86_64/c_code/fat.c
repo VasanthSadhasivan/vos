@@ -597,3 +597,101 @@ uint64_t read(uint8_t fd, uint64_t size, uint8_t *buffer) {
 	kfree(cluster_buffer);
 	return read_count;
 }
+
+uint64_t read_separate_pt(uint8_t fd, uint64_t size, uint8_t *buffer, pt1_entry_t *page_table_base) {
+	uint8_t i;
+	uint8_t *cluster_buffer;
+	uint32_t cluster_count;
+	uint32_t cluster;
+	uint32_t cluster_offset;
+	uint32_t cluster_write_offset;
+	uint64_t read_count;
+	uint64_t temp;
+
+	if (size == 0) {
+		return 0;
+	}
+	
+	if(fd >= 512) {
+		printk("FD out of bounds\n");
+		return 0;
+	}
+
+	if(fd_table[fd].cluster == 0) {
+		printk("FD is not open\n");
+		return 0;
+	}
+
+	if (fd_table[fd].file_offset + size > fd_table[fd].file_size) {
+		size = fd_table[fd].file_size - fd_table[fd].file_offset;
+	}
+
+	read_count = 0;
+	cluster_buffer = kmalloc(bytes_per_sector * sectors_per_cluster);
+	cluster_count = (size + bytes_per_sector * sectors_per_cluster - 1) / (bytes_per_sector * sectors_per_cluster);
+	cluster = fd_table[fd].cluster;
+	cluster_offset = fd_table[fd].cluster_offset;
+	cluster_write_offset = (bytes_per_sector * sectors_per_cluster - cluster_offset) % bytes_per_sector * sectors_per_cluster;
+
+	if (cluster_offset != 0) {
+		if(cluster >= 0xffffff8) {
+			printk("File fully read\n");
+                        kfree(cluster_buffer);
+                        return 0;
+		}
+
+		read_cluster(cluster, cluster_buffer);
+		if (size < (bytes_per_sector * sectors_per_cluster - cluster_offset)) {
+			my_memcpy_separate_pt(buffer, cluster_buffer + cluster_offset, size, (uint8_t *) page_table_base);
+			fd_table[fd].cluster_offset += size;
+			kfree(cluster_buffer);
+			fd_table[fd].file_offset += size;
+			return size;
+		} else {
+			my_memcpy_separate_pt(buffer, cluster_buffer + cluster_offset, bytes_per_sector * sectors_per_cluster - cluster_offset, (uint8_t *) page_table_base);
+			read_count += bytes_per_sector * sectors_per_cluster - cluster_offset;
+			size -= bytes_per_sector * sectors_per_cluster - cluster_offset;
+			cluster_count = (size + bytes_per_sector * sectors_per_cluster - 1) / (bytes_per_sector * sectors_per_cluster);
+			fd_table[fd].cluster = fat_lookup(cluster);
+			cluster = fd_table[fd].cluster;
+			fd_table[fd].cluster_offset = 0;
+			cluster_offset = fd_table[fd].cluster_offset;
+		}
+	}
+
+	for(i = 0; i < cluster_count; i++) {
+		if(cluster >= 0xffffff8) {
+			printk("File fully read\n");
+			kfree(cluster_buffer);
+			return 0;
+		}
+
+		read_cluster(cluster, cluster_buffer);
+		if (i == cluster_count - 1) {
+			temp = size % (bytes_per_sector * sectors_per_cluster);
+			if (temp == 0) {
+				temp = bytes_per_sector * sectors_per_cluster;
+				cluster = fat_lookup(cluster);
+				cluster_offset = 0;
+				my_memcpy_separate_pt(buffer + i * (bytes_per_sector * sectors_per_cluster) + cluster_write_offset, cluster_buffer, bytes_per_sector * sectors_per_cluster, (uint8_t *) page_table_base);
+			} else {
+				cluster_offset = temp;
+				my_memcpy_separate_pt(buffer + i * (bytes_per_sector * sectors_per_cluster) + cluster_write_offset, cluster_buffer, cluster_offset, (uint8_t *) page_table_base);
+			}
+
+			read_count += temp;
+		} else {
+
+			my_memcpy_separate_pt(buffer + i * (bytes_per_sector * sectors_per_cluster) + cluster_write_offset, cluster_buffer, bytes_per_sector * sectors_per_cluster, (uint8_t *) page_table_base);
+			read_count += bytes_per_sector * sectors_per_cluster;
+			cluster = fat_lookup(cluster);
+		}
+	}
+
+	fd_table[fd].cluster = cluster;
+	fd_table[fd].cluster_offset = cluster_offset;
+	fd_table[fd].file_offset += read_count;
+
+	kfree(cluster_buffer);
+	return read_count;
+}

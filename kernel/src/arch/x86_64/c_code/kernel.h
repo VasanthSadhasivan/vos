@@ -15,6 +15,7 @@
 #include"extras/md5.h"
 #include"elf.h"
 #include"syscall.h"
+#include"user.h"
 #include<stdint.h>
 
 void kernel_main();

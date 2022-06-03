@@ -1,7 +1,8 @@
 global HandleGeneric
 global interrupts_enabled
 
-
+extern current_page_table_base
+extern kernel_page_table_base
 extern isr
 
 %macro pushaq 0
@@ -59,7 +60,42 @@ extern isr
 %macro HandleWithErrorCode 1
 global HandleWithErrorCode%1
 HandleWithErrorCode%1:
+;	add rsp, 0x8
+;	pushaq
+;	mov rdi, %1
+;	call isr
+;	popaq
+;	mov [originalrdi], rdi
+;	mov rdi, [current_page_table_base]
+;	cmp rdi, 0
+;	je .iret%1
+;	mov cr3, rdi
+;.iret%1:
+;	mov rdi, [originalrdi]
+;	iretq
+;check if current_page_table_base == 0, if it is, jmp
 	add rsp, 0x8
+	mov [originalr14], r14
+	mov r14, [current_page_table_base]
+	cmp r14, 0x00
+	je .no_user%1
+	push r14 ;top of stack is original page table base
+	mov r14, [kernel_page_table_base]
+	mov [current_page_table_base], r14
+	mov cr3, r14
+	mov r14, [originalr14]
+	pushaq
+	mov rdi, %1
+	call isr
+	popaq
+	mov [originalr14], r14
+	pop r14 ;grab original page table base
+	mov [current_page_table_base], r14
+	mov cr3, r14
+	mov r14, [originalr14]
+	iretq
+.no_user%1:
+	mov r14, [originalr14]
 	pushaq
 	mov rdi, %1
 	call isr
@@ -70,6 +106,37 @@ HandleWithErrorCode%1:
 %macro Handle 1
 global Handle%1
 Handle%1:
+	pushaq
+	mov rdi, %1
+	call isr
+	popaq
+	iretq
+%endmacro
+
+%macro HandleHardware 1
+global HandleHardware%1
+HandleHardware%1:
+	mov [originalr14], r14
+	mov r14, [current_page_table_base]
+	cmp r14, 0x00
+	je .no_user%1
+	push r14 ;top of stack is original page table base
+	mov r14, [kernel_page_table_base]
+	mov [current_page_table_base], r14
+	mov cr3, r14
+	mov r14, [originalr14]
+	pushaq
+	mov rdi, %1
+	call isr
+	popaq
+	mov [originalr14], r14
+	pop r14 ;grab original page table base
+	mov [current_page_table_base], r14
+	mov cr3, r14
+	mov r14, [originalr14]
+	iretq
+.no_user%1:
+	mov r14, [originalr14]
 	pushaq
 	mov rdi, %1
 	call isr
@@ -106,50 +173,66 @@ HandleWithErrorCode 10
 HandleWithErrorCode 11
 HandleWithErrorCode 12
 HandleWithErrorCode 13
-HandleWithErrorCode 14
+
+global HandleWithErrorCode14
+HandleWithErrorCode14:
+	add rsp, 0x8
+	pushaq
+	mov rdi, 14
+	call isr
+	popaq
+	mov [originalrdi], rdi
+	mov rdi, [current_page_table_base]
+	cmp rdi, 0
+	je .iret14
+	mov cr3, rdi
+.iret14:
+	mov rdi, [originalrdi]
+	iretq
+
 HandleWithErrorCode 17
 HandleWithErrorCode 21
 HandleWithErrorCode 29
 HandleWithErrorCode 30
 
-Handle 0
-Handle 1
-Handle 2
-Handle 3
-Handle 4
-Handle 5
-Handle 6
-Handle 7
-Handle 9
-Handle 15
-Handle 16
-Handle 18
-Handle 19
-Handle 20
-Handle 22
-Handle 23
-Handle 24
-Handle 25
-Handle 26
-Handle 27
-Handle 28
-Handle 31
-Handle 32
-Handle 33
-Handle 34
-Handle 35
-Handle 36
-Handle 37
-Handle 38
-Handle 39
-Handle 40
-Handle 41
-Handle 42
-Handle 43
-Handle 44
-Handle 45
-Handle 46
-Handle 47
+HandleHardware 0
+HandleHardware 1
+HandleHardware 2
+HandleHardware 3
+HandleHardware 4
+HandleHardware 5
+HandleHardware 6
+HandleHardware 7
+HandleHardware 9
+HandleHardware 15
+HandleHardware 16
+HandleHardware 18
+HandleHardware 19
+HandleHardware 20
+HandleHardware 22
+HandleHardware 23
+HandleHardware 24
+HandleHardware 25
+HandleHardware 26
+HandleHardware 27
+HandleHardware 28
+HandleHardware 31
+HandleHardware 32
+HandleHardware 33
+HandleHardware 34
+HandleHardware 35
+HandleHardware 36
+HandleHardware 37
+HandleHardware 38
+HandleHardware 39
+HandleHardware 40
+HandleHardware 41
+HandleHardware 42
+HandleHardware 43
+HandleHardware 44
+HandleHardware 45
+HandleHardware 46
+HandleHardware 47
 Handle 48
 Handle 49
 Handle 50
@@ -230,7 +313,28 @@ Handle 124
 Handle 125
 Handle 126
 Handle 127
-Handle 128
+global Handle128
+Handle128:
+	mov [originalr14], r14
+	mov r14, [current_page_table_base]
+	mov [original_page_table_base], r14
+	mov r14, [kernel_page_table_base]
+	mov [current_page_table_base], r14
+	mov cr3, r14
+	mov r14, [originalr14]
+	mov [originalr15], r15
+	mov r15, [original_page_table_base]
+	pushaq
+	mov rdi, 128
+	call isr
+	popaq
+	mov r15, [originalr15]
+	mov [originalr14], r14
+	mov r14, [original_page_table_base]
+	mov cr3, r14
+	mov [current_page_table_base], r14
+	mov r14, [originalr14]
+	iretq
 Handle 129
 Handle 130
 Handle 131
@@ -355,6 +459,26 @@ Handle 249
 Handle 250
 Handle 251
 Handle 252
-Handle 253
+global Handle253
+Handle253:
+	pushaq
+	mov rdi, 253
+	call isr
+	popaq
+	mov [originalr14], r14
+	mov r14, [current_page_table_base]
+	mov cr3, r14
+	mov r14, [originalr14]
+	iretq
 Handle 254
 Handle 255
+
+section .data
+originalr14:
+        dq 0 ; zero entry
+original_page_table_base:
+	dq 0
+originalrdi:
+	dq 0
+originalr15:
+	dq 0

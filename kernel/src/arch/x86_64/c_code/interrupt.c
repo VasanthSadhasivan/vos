@@ -121,7 +121,7 @@ void isr_setup() {
 		if(i < 32) {
 			idt64[i].group_of_data = 0x8E02;
 		} else if(i == 0x80) {
-			idt64[i].group_of_data = 0x8E03;	
+			idt64[i].group_of_data = 0xEE03;	
 		}else{
 			idt64[i].group_of_data = 0x8E01;
 		}
@@ -133,7 +133,7 @@ void isr_setup() {
 	pic_setup();
 	printk("Setup PIC\n");
 
-	tss_descriptor = (system_segment_descriptor *) (&gdt64 + 8*2);
+	tss_descriptor = (system_segment_descriptor *) (&gdt64 + 8*4);
 	tss_descriptor -> limit1 = 0x68;
 	tss_descriptor -> limit2 = 0;
 	tss_descriptor -> base1 = (((uint64_t)&tss) & 0xFFFFFF);
@@ -144,7 +144,7 @@ void isr_setup() {
 
 	asm volatile("movw %0, %%ax; ltr %%ax"
 		      :
-		      :"n"((uint16_t)0x10)
+		      :"n"((uint16_t)0x20)
 		      :"%ax");
 
 	asm volatile("lidt %0" : : "m"(idtr));

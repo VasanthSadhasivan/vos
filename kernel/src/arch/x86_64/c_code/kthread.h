@@ -3,6 +3,7 @@
 
 #include"interrupt.h"
 #include"heap.h"
+#include"paging.h"
 
 typedef struct kthread_t_s{
 	struct kthread_t_s *next;
@@ -31,6 +32,7 @@ typedef struct kthread_t_s{
 	uint64_t rflags;
 	uint16_t cs;
 	uint64_t rip;
+	pt1_entry_t *page_table_base;
 } kthread_t;
 
 typedef struct {
@@ -52,6 +54,7 @@ typedef void (kthread_function_t) (void *);
 
 void PROC_init();
 kthread_t *PROC_create_kthread(kthread_function_t thread_loc, void *arg);
+kthread_t *PROC_create_thread(kthread_function_t thread_loc, pt1_entry_t *user_page_table_base, void *arg);
 void PROC_reschedule();
 void on_yield();
 void yield();

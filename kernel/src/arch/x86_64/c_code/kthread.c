@@ -17,7 +17,7 @@ void PROC_init() {
 }
 
 kthread_t *PROC_create_kthread(kthread_function_t thread_loc, void *arg) {
-        uint16_t cs;
+        uint16_t cs, ss;
 	kthread_t *curr;
 	kthread_t *thread_p;
         
@@ -30,9 +30,42 @@ kthread_t *PROC_create_kthread(kthread_function_t thread_loc, void *arg) {
 	thread_p -> rip = (uint64_t) thread_loc;
 	thread_p -> rdi = (uint64_t) arg;
 	thread_p -> cs = cs;
+	thread_p -> ss = 0;
 	thread_p -> next = (kthread_t *) 0;
 	thread_p -> pid = ++proc_id_counter;
 	thread_p -> rflags = 0x246;
+	thread_p -> page_table_base = kernel_page_table_base;
+
+	if(PROC_head == (kthread_t *) 0) {
+		PROC_head = thread_p;
+	} else {
+		for(curr = PROC_head; curr -> next != (kthread_t *) 0; curr = curr -> next);
+		curr -> next = thread_p;
+	}
+
+	return thread_p;
+}
+
+kthread_t *PROC_create_thread(kthread_function_t thread_loc, pt1_entry_t *user_page_table_base, void *arg) {
+        uint16_t cs, ss;
+	kthread_t *curr;
+	kthread_t *thread_p;
+        
+	cs = 0x13;
+	ss = 0x1B;
+
+	thread_p = (kthread_t *) kmalloc(sizeof(kthread_t));
+	my_memset((uint8_t *)thread_p, 0x00, sizeof(kthread_t));
+	thread_p -> rbp = (uint64_t) 0x60000000000 - 1;
+	thread_p -> rsp = thread_p -> rbp;
+	thread_p -> rip = (uint64_t) thread_loc;
+	thread_p -> rdi = (uint64_t) arg;
+	thread_p -> cs = cs;
+	thread_p -> ss = ss;
+	thread_p -> next = (kthread_t *) 0;
+	thread_p -> pid = ++proc_id_counter;
+	thread_p -> rflags = 0x246;
+	thread_p -> page_table_base = user_page_table_base;
 
 	if(PROC_head == (kthread_t *) 0) {
 		PROC_head = thread_p;
@@ -129,6 +162,7 @@ void kexit() {
 }
 
 void save_registers(uint64_t *isr_rbp, kthread_t *thread_p) {
+	// TODO: exit user mode if in user
         thread_p -> gs = (isr_rbp + 2)[0];
         thread_p -> fs = (isr_rbp + 3)[0];
         thread_p -> es = (isr_rbp + 4)[0];
@@ -154,6 +188,10 @@ void save_registers(uint64_t *isr_rbp, kthread_t *thread_p) {
 	thread_p -> rflags = (isr_rbp + 23)[0];
 	thread_p -> rsp = (isr_rbp + 24)[0];
 	thread_p -> ss = (uint16_t) (isr_rbp + 25)[0];
+	
+	if(thread_p -> page_table_base == 0x00) {
+		thread_p -> page_table_base = kernel_page_table_base;
+	}
 }
 
 void load_registers(uint64_t *isr_rbp, kthread_t *thread_p) {
@@ -182,6 +220,8 @@ void load_registers(uint64_t *isr_rbp, kthread_t *thread_p) {
 	(isr_rbp + 23)[0] = thread_p -> rflags;
 	(isr_rbp + 24)[0] = thread_p -> rsp;
 	(isr_rbp + 25)[0] = thread_p -> ss;
+	//TODO: Enter user mode
+	load_new_page_table(thread_p -> page_table_base);
 }
 
 void PROC_external_queue_init() {
@@ -265,5 +305,4 @@ void PROC_unblock_head(external_queue_t *queue) {
 	} else {
 		PROC_head = thread_to_add;
 	}
-
 }

@@ -7,8 +7,6 @@ void my_memcpy(unsigned char *destination, unsigned char *source, unsigned long 
 	}
 }
 
-
-
 uint8_t my_memcmp(unsigned char *destination, unsigned char *source, unsigned long long len){
 	unsigned long long i;
 
