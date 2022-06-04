@@ -8,7 +8,8 @@ int main(int argx, char **argv) {
 	putc('a');
 	putc('b');
 	putc('c');
-	for (i = 0; i < 10; i++) {
+	yield();
+	while(1) {
 		putc(getc());
 	}
       asm volatile("int %0;" : : "n"(0x81));

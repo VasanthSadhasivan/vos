@@ -33,6 +33,9 @@ void on_int80() {
 		case 1:
 			printk("%c", (uint8_t) r13);
 			break;
+		case 2:
+			yield();
+			break;
 		default:
 			break;
 	}

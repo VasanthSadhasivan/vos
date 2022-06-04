@@ -29,6 +29,8 @@ void kernel_virtualized_main() {
 	//PROC_create_kthread(load_elf("/boot/user/program_1.elf"), data);
 	user_page_table = new_user_page_table();
 	PROC_create_thread(load_user_elf("/boot/user/program_1.elf", user_page_table), user_page_table, 0x00);
+	user_page_table = new_user_page_table();
+	PROC_create_thread(load_user_elf("/boot/user/program_2.elf", user_page_table), user_page_table, 0x00);
 	PROC_run();
 	//PROC_create_kthread(thread_1, data);
 	//PROC_create_kthread(thread_2, data);

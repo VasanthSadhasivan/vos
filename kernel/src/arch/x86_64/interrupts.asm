@@ -318,6 +318,7 @@ Handle128:
 	mov [originalr14], r14
 	mov r14, [current_page_table_base]
 	mov [original_page_table_base], r14
+	push r14
 	mov r14, [kernel_page_table_base]
 	mov [current_page_table_base], r14
 	mov cr3, r14
@@ -330,7 +331,15 @@ Handle128:
 	popaq
 	mov r15, [originalr15]
 	mov [originalr14], r14
-	mov r14, [original_page_table_base]
+	mov r14, [current_page_table_base]
+	cmp r14, [kernel_page_table_base]
+	je still_kernel
+	add rsp, 0x08
+	push r14
+	;mov [original_page_table_base], r14
+still_kernel:
+	pop r14	
+	;mov r14, [original_page_table_base]
 	mov cr3, r14
 	mov [current_page_table_base], r14
 	mov r14, [originalr14]
@@ -470,7 +479,17 @@ Handle253:
 	mov cr3, r14
 	mov r14, [originalr14]
 	iretq
-Handle 254
+global Handle254
+Handle254:
+	pushaq
+	mov rdi, 254
+	call isr
+	popaq
+	mov [originalr14], r14
+	mov r14, [current_page_table_base]
+	mov cr3, r14
+	mov r14, [originalr14]
+	iretq
 Handle 255
 
 section .data
